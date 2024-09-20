@@ -1,10 +1,14 @@
-# [Your Project Title]
+# Personal Budget Manager with Data Visualization
 ## Project Description
-[Provide a brief overview of your project, 2-3 sentences]
+In this Personal Budget Manager, the user is able to create their own personal budget manager where they can input income and expenses, as well as categorize them, and being given a visual concept of their quantity spent over time. With (...) the user is going to be able to login and securely retrieve their corresponding data. Visualizations are going to be developed using Matplotib. And Datetime module will allow date-based searches for any operations. The goal of this project is to simplify financial operations while understanding it.
 ## Main Idea
-[Describe the core concept or functionality of your project]
+Cretae a simple budget manager where users can log-in and manage their own budget.
 ## Technologies
-[List any technologies or libraries you think you might use]
+So far:
+- Python as programming language.
+- Matplotib, to create the visual breakdown.
+- Datetime module, to handle dates and times.
+- (I still have to find one for the data storage).
 ## Project Timeline
 - Week 4: Project initialization and setup
 - Week 5: First meaningful commit beyond initial setup
