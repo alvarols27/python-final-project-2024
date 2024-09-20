@@ -2,7 +2,7 @@
 ## Project Description
 In this Personal Budget Manager, the user is able to create their own personal budget manager where they can input income and expenses, as well as categorize them, and being given a visual concept of their quantity spent over time. With (...) the user is going to be able to login and securely retrieve their corresponding data. Visualizations are going to be developed using Matplotib. And Datetime module will allow date-based searches for any operations. The goal of this project is to simplify financial operations while understanding it.
 ## Main Idea
-Cretae a simple budget manager where users can log-in and manage their own budget.
+Create a simple budget manager where users can log-in and manage their own budget.
 ## Technologies
 So far:
 - Python as programming language.
