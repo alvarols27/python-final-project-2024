@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Budget Manager</title>
+    <style>
+        /* Styling remains unchanged */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            margin: 0 10px;
+            background-color: #3498db;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .tab:hover {
+            background-color: #2980b9;
+        }
+
+        .tab.active {
+            background-color: #1abc9c;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #d0d7de;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        button {
+            margin-top: 8.5px;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .add-button {
+            margin-top: 18px;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-button:hover {
+            background-color: #50C878
+        }
+
+        .update-button {
+            margin-top: 18px;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .update-button:hover {
+            background-color: #ED9121
+        }
+
+        .delete-button {
+            margin-top: -5px;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background-color: #E3242B
+        }
+
+        .logout-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .logout-button {
+            background-color: #E3242B
+        }
+
+        .logout-button:hover {
+            background-color: #B22222
+        }
+    </style>
+    <script>
+        async function loadTransactions() {
+            const response = await fetch('/get_transactions');
+            const transactions = await response.json();
+
+            const transactionDropdown = document.getElementById('transaction-select');
+            const transactionDropdownDelete = document.getElementById('transaction-select-delete')
+            transactionDropdown.innerHTML = '<option value="">Select a transaction</option>';
+            transactionDropdownDelete.innerHTML = '<option value="">Select a transaction</option>';
+
+            transactions.forEach(transaction => {
+                const option = document.createElement('option');
+                option.value = transaction.id;
+                option.textContent = `${transaction.type}, $${transaction.amount}, ${transaction.date}`;
+                transactionDropdown.appendChild(option);
+
+                // Populate the delete dropdown as well
+                const deleteOption = document.createElement('option');
+                deleteOption.value = transaction.id;
+                deleteOption.textContent = `${transaction.type}, $${transaction.amount}, ${transaction.date}`;
+                transactionDropdownDelete.appendChild(deleteOption);
+            });
+        }
+
+        function populateFormFields() {
+            const selectedId = document.getElementById('transaction-select').value;
+            if (!selectedId) {
+                clearFormFields();
+                return;
+            }
+
+            fetch('/get_transactions')
+                .then(response => response.json())
+                .then(transactions => {
+                    const transaction = transactions.find(t => t.id === parseInt(selectedId));
+                    if (transaction) {
+                        document.getElementById('type-update').value = transaction.type;
+                        document.getElementById('amount-update').value = transaction.amount;
+                        document.getElementById('date-update').value = transaction.date;
+                    }
+                });
+        }
+
+        function clearFormFields() {
+            document.querySelectorAll('input').forEach(input => (input.value = ''));
+        }
+
+        function switchTab(tabId) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+            clearFormFields(); // Reset all fields when switching tabs
+        }
+
+        async function init() {
+            await loadTransactions();
+        }
+
+        window.onload = init;
+    </script>
+</head>
+<body>
+    <h1>Welcome to Your Personal Budget Manager</h1>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="add" onclick="switchTab('add')">Add Transaction</div>
+        <div class="tab" data-tab="update" onclick="switchTab('update')">Update Transaction</div>
+        <div class="tab" data-tab="view-manage" onclick="switchTab('view-manage')">View & Manage</div>
+    </div>
+
+    <div id="add" class="tab-content active">
+        <h2>Add Transaction</h2>
+        <form action="/add_transaction" method="POST">
+            <label for="type-add">Transaction Type:</label>
+            <input type="text" id="type-add" name="type" required>
+
+            <label for="amount-add">Amount:</label>
+            <input type="number" id="amount-add" name="amount" required>
+
+            <label for="date-add">Date (YYYY-MM-DD):</label>
+            <input type="text" id="date-add" name="date" required>
+
+            <button class="add-button" type="submit">Add Transaction</button>
+        </form>
+    </div>
+
+    <div id="update" class="tab-content">
+        <h2>Update Transaction</h2>
+        <form action="/update_transaction" method="POST">
+            <label for="transaction-select">Select Transaction:</label>
+            <select id="transaction-select" name="id" onchange="populateFormFields()"></select>
+
+            <label for="type-update">Transaction Type:</label>
+            <input type="text" id="type-update" name="type" required>
+
+            <label for="amount-update">Amount:</label>
+            <input type="number" id="amount-update" name="amount" required>
+
+            <label for="date-update">Date (YYYY-MM-DD):</label>
+            <input type="text" id="date-update" name="date" required>
+
+            <button class="update-button" type="submit">Update Transaction</button>
+        </form>
+    </div>
+
+    <div id="view-manage" class="tab-content">
+        <!-- Get Transactions -->
+        <h4>Take a look to all your transcriptions!</h4>
+        <button onclick="window.location.href='/get_transactions'">Get Transactions</button>
+
+        <!-- Visualize Spending -->
+        <br><br>
+        <h4>A visual aid to check your spending?</h4>
+        <button onclick="window.location.href='/visualize_spending'">View Spending Plot</button>
+
+        <!-- Delete Transaction -->
+        <br><br>
+        <h4>Delete Transaction</h4>
+        <form action="/delete_transaction" method="POST">
+            <label for="transaction-select-delete">Select Transaction to Delete:</label>
+            <select id="transaction-select-delete" name="id"></select>
+            <br>
+            <button class="delete-button" type="submit">Delete Transaction</button>
+        </form>
+    </div>
+    <button class="logout-button" onclick="window.location.href='/logout'">Log Out</button>
+</body>
+</html>
