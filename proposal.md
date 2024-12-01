@@ -4,11 +4,17 @@ In this Personal Budget Manager, the user is able to create their own personal b
 ## Main Idea
 Create a simple budget manager where users can log-in and manage their own budget.
 ## Technologies
-So far:
-- Python as programming language.
-- Matplotib, to create the visual breakdown.
-- Datetime module, to handle dates and times.
-- (I still have to find one for the data storage).
+- **Python**: As programming language.
+- **Flask**: Framework used to create the web application.  
+- **Matplotlib**: To create the visual breakdown.
+- **Datetime**: Module to handle dates and times.
+- **OS**: Module for interacting with the operating system, such as handling file paths.  
+- **SQLite3**: Database for storing user data and transactions.
+- **Dotenv**: Library for managing environment variables securely.
+- **Cryptography.Fernet**: Library for encrypting sensitive data. 
+- **Functools**: Used to create reusable decorators like authentication.  
+- **Werkzeug Security**: Provides password hashing and validation for secure user authentication.  
+- **RE**: Module for string matching and validation input (in my case, to validate the password).
 ## Project Timeline
 - Week 4: Project initialization and setup
 - Week 5: First meaningful commit beyond initial setup

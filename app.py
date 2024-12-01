@@ -1,4 +1,3 @@
-import datetime
 from flask import Flask, request, jsonify, send_file, render_template, redirect, session
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -7,13 +6,27 @@ import sqlite3
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 from functools import wraps
-from matplotlib.pyplot import connect
 from werkzeug.security import generate_password_hash, check_password_hash
+import re
 
 app = Flask(__name__)
 
 app.secret_key = os.urandom(24)
 
+#Firewall
+# IP Blocking setup
+BLOCKED_IPS = set() #I don't want to block my own IP
+# BLOCKED_IPS = {'127.0.0.1'}
+
+def check_ip(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if request.remote_addr in BLOCKED_IPS:
+            return jsonify({'error': 'blocked'}), 403
+        return f(*args, **kwargs)
+    return wrapper
+
+# Encryption
 load_dotenv()
 encryption_key = os.getenv('ENCRYPTION_KEY')
 
@@ -24,19 +37,7 @@ if not encryption_key:
 
 fernet = Fernet(encryption_key.encode())
 
-# IP Blocking setup
-BLOCKED_IPS = set() #I don't want to block my own IP
-# BLOCKED_IPS = {'127.0.0.1'}
-
 DATABASE = 'database/databases.db'
-
-def check_ip(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if request.remote_addr in BLOCKED_IPS:
-            return jsonify({'error': 'blocked'}), 403
-        return f(*args, **kwargs)
-    return wrapper
 
 def init_db():
     conn = sqlite3.connect(DATABASE)
@@ -72,6 +73,7 @@ def decrypt_data(encrypted_data: str) -> str:
     return fernet.decrypt(encrypted_data.encode()).decode()
 
 def save_transaction(transaction_type, amount, date, username):
+    print(f"Inserting transaction: {transaction_type}, Amount: {amount}, Date: {date}, Username: {username}")
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     encrypted_amount = encrypt_data(str(amount))
@@ -80,6 +82,7 @@ def save_transaction(transaction_type, amount, date, username):
         (transaction_type, encrypted_amount, date, username)
     )
     conn.commit()
+    print(f"Transaction inserted successfully!")
     conn.close()
 
 def load_transactions():
@@ -136,8 +139,22 @@ def visualize_spending():
     plt.savefig('static/spending_plot.png')
     return 'static/spending_plot.png'
 
+def validate_password(password):
+    if len(password) < 8:
+        return "Password must be at least 8 characters long."
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter."
+    if not re.search(r"[0-9]", password):
+        return "Password must contain at least one digit."
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return "Password must contain at least one special character."
+    return None
+
 #This is the main root (OUR START PAGE)
 @app.route('/', methods=['GET'])
+@check_ip
 def root():
     if 'username' in session:
         return redirect('/index')
@@ -145,10 +162,12 @@ def root():
 
 #IF WE WANT TO CLICK 'login' IN SIGNUP PAGE
 @app.route('/login', methods=['GET'])
+@check_ip
 def login_form():
     return render_template('login.html')
 
 @app.route('/login', methods=['POST'])
+@check_ip
 def login():
         username = request.form.get('username')
         password = request.form.get('password')
@@ -163,22 +182,32 @@ def login():
         if not user:
             return render_template('login.html', error="User not found. Create it!")
 
-        # Assuming the password hash is in the third column (index 3)
+        #The password hash is in the third column (index 3)
         if not check_password_hash(user[3], password):
             return render_template('login.html', error="Incorrect password")
 
+        print(f"User {username} has logged in.")
         session['username'] = username
         return redirect('/index')
 
 @app.route('/signup', methods=['GET'])
+@check_ip
 def signup_form():
     return render_template('signup.html')
 
 @app.route('/signup', methods=['POST'])
+@check_ip
 def signup():
     username = request.form.get('username')
     email = request.form.get('email')
     password = request.form.get('password')
+
+    # Validate password
+    password_error = validate_password(password)
+    if password_error:
+        return render_template('signup.html', error=password_error)
+
+    # Hash the password
     password_hash = generate_password_hash(password)
 
     conn = sqlite3.connect(DATABASE)
@@ -202,19 +231,23 @@ def signup():
     return render_template('signup.html', success="User added successfully!")
 
 @app.route('/index', methods=['GET'])
+@check_ip
 def index():
     if 'username' not in session:
         return redirect('/')
     return render_template('index.html')
 
 @app.route('/logout')
+@check_ip
 def logout():
+    print(f"User {session.get('username')} has logged out.")
     session.pop('username', None)
     return redirect('/')
 
 @app.route('/add_transaction', methods=['POST'])
 @check_ip
 def add_transaction():
+    print(f"POST /add_transaction - Data received: {request.form}")
     transaction_type = request.form.get('type').lower()
     amount_str = request.form.get('amount')
     date = request.form.get('date')
@@ -233,7 +266,8 @@ def add_transaction():
         return jsonify({'error': 'Amount must be a positive number'}), 400
     try:
         datetime.strptime(date, "%Y-%m-%d")
-    except ValueError:
+    except ValueError as e:
+        print(f"Error in add_transaction: {str(e)}")
         return jsonify({'error': 'Invalid date format. Try employing the presented format (YYYY-MM-DD)'}), 400
 
     save_transaction(transaction_type, float(amount), date, username)  # Pass the username
